@@ -1,11 +1,12 @@
 package testdb
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
 	"log"
 	"strconv"
 
+	"github.com/jackc/pgx/v4/pgxpool"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
@@ -21,7 +22,9 @@ const (
 	POSTGRES_PASSWORD = "password1"
 )
 
-func newPostgres(opts ...OptionsFunc) (*sql.DB, func(), error) {
+const PgMaxOpenConns = 10
+
+func newPostgres(opts ...OptionsFunc) (*pgxpool.Pool, func(), error) {
 	option := &options{}
 	for _, f := range opts {
 		f(option)
@@ -75,17 +78,24 @@ func newPostgres(opts ...OptionsFunc) (*sql.DB, func(), error) {
 		POSTGRES_PASSWORD,
 		POSTGRES_DB,
 	)
-	var db *sql.DB
+	var db *pgxpool.Pool
 	// Exponential backoff-retry, because the application in the container
 	// might not be ready to accept connections yet.
 	if err := pool.Retry(
 		func() error {
 			var err error
-			db, err = sql.Open("pgx", psqlInfo)
+			conConfig, err := pgxpool.ParseConfig(psqlInfo)
 			if err != nil {
-				return err
+				panic(err)
 			}
-			return db.Ping()
+			conConfig.ConnConfig.PreferSimpleProtocol = true
+			conConfig.MaxConns = PgMaxOpenConns
+			db, err := pgxpool.ConnectConfig(context.Background(), conConfig)
+			if err != nil {
+				panic(err)
+			}
+
+			return db.Ping(context.Background())
 		},
 	); err != nil {
 		return nil, cleanup, fmt.Errorf("could not connect to docker database: %v", err)

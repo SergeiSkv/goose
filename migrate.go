@@ -1,6 +1,7 @@
 package goose
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -9,6 +10,8 @@ import (
 	"runtime"
 	"sort"
 	"time"
+
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 var (
@@ -239,7 +242,7 @@ func versionFilter(v, current, target int64) bool {
 
 // EnsureDBVersion retrieves the current version for this DB.
 // Create and initialize the DB version table if it doesn't exist.
-func EnsureDBVersion(db *sql.DB) (int64, error) {
+func EnsureDBVersion(db *pgxpool.Pool) (int64, error) {
 	rows, err := GetDialect().dbVersionQuery(db)
 	if err != nil {
 		return 0, createVersionTable(db)
@@ -288,31 +291,32 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 
 // Create the db version table
 // and insert the initial 0 value into it
-func createVersionTable(db *sql.DB) error {
-	txn, err := db.Begin()
+func createVersionTable(db *pgxpool.Pool) error {
+	ctx := context.Background()
+	txn, err := db.Begin(ctx)
 	if err != nil {
 		return err
 	}
 
 	d := GetDialect()
 
-	if _, err := txn.Exec(d.createVersionTableSQL()); err != nil {
-		txn.Rollback()
+	if _, err := txn.Exec(ctx, d.createVersionTableSQL()); err != nil {
+		txn.Rollback(ctx)
 		return err
 	}
 
 	version := 0
 	applied := true
-	if _, err := txn.Exec(d.insertVersionSQL(), version, applied); err != nil {
-		txn.Rollback()
+	if _, err := txn.Exec(ctx, d.insertVersionSQL(), version, applied); err != nil {
+		txn.Rollback(ctx)
 		return err
 	}
 
-	return txn.Commit()
+	return txn.Commit(ctx)
 }
 
 // GetDBVersion is an alias for EnsureDBVersion, but returns -1 in error.
-func GetDBVersion(db *sql.DB) (int64, error) {
+func GetDBVersion(db *pgxpool.Pool) (int64, error) {
 	version, err := EnsureDBVersion(db)
 	if err != nil {
 		return -1, err

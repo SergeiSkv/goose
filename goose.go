@@ -1,10 +1,11 @@
 package goose
 
 import (
-	"database/sql"
 	"fmt"
 	"io/fs"
 	"strconv"
+
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 // Deprecated: VERSION will no longer be supported in v4.
@@ -38,16 +39,16 @@ func SetBaseFS(fsys fs.FS) {
 }
 
 // Run runs a goose command.
-func Run(command string, db *sql.DB, dir string, args ...string) error {
+func Run(command string, db *pgxpool.Pool, dir string, args ...string) error {
 	return run(command, db, dir, args)
 }
 
 // Run runs a goose command with options.
-func RunWithOptions(command string, db *sql.DB, dir string, args []string, options ...OptionsFunc) error {
+func RunWithOptions(command string, db *pgxpool.Pool, dir string, args []string, options ...OptionsFunc) error {
 	return run(command, db, dir, args, options...)
 }
 
-func run(command string, db *sql.DB, dir string, args []string, options ...OptionsFunc) error {
+func run(command string, db *pgxpool.Pool, dir string, args []string, options ...OptionsFunc) error {
 	switch command {
 	case "up":
 		if err := Up(db, dir, options...); err != nil {

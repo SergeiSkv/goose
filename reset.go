@@ -1,13 +1,14 @@
 package goose
 
 import (
-	"database/sql"
 	"fmt"
 	"sort"
+
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 // Reset rolls back all migrations
-func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
+func Reset(db *pgxpool.Pool, dir string, opts ...OptionsFunc) error {
 	option := &options{}
 	for _, f := range opts {
 		f(option)
@@ -38,7 +39,7 @@ func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
 	return nil
 }
 
-func dbMigrationsStatus(db *sql.DB) (map[int64]bool, error) {
+func dbMigrationsStatus(db *pgxpool.Pool) (map[int64]bool, error) {
 	rows, err := GetDialect().dbVersionQuery(db)
 	if err != nil {
 		return map[int64]bool{}, nil

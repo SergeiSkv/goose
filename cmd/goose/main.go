@@ -119,9 +119,6 @@ func main() {
 		arguments = append(arguments, args[3:]...)
 	}
 	options := []goose.OptionsFunc{}
-	if *noColor || checkNoColorFromEnv() {
-		options = append(options, goose.WithNoColor(true))
-	}
 	if *allowMissing {
 		options = append(options, goose.WithAllowMissing())
 	}

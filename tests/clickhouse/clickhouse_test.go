@@ -1,7 +1,6 @@
 package clickhouse_test
 
 import (
-	"database/sql"
 	"errors"
 	"path/filepath"
 	"testing"
@@ -171,7 +170,7 @@ func TestRemoteImportMigration(t *testing.T) {
 	check.Number(t, count, 265)
 }
 
-func checkTableMutation(t *testing.T, db *sql.DB, tableName string) bool {
+func checkTableMutation(t *testing.T, db *pgxpool.Pool, tableName string) bool {
 	t.Helper()
 	rows, err := db.Query(
 		`select mutation_id, command, is_done, create_time from system.mutations where table=$1`,

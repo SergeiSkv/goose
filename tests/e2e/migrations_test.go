@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -213,7 +212,7 @@ func TestMigrateFull(t *testing.T) {
 	}
 }
 
-func getCurrentGooseVersion(db *sql.DB, gooseTable string) (int64, error) {
+func getCurrentGooseVersion(db *pgxpool.Pool, gooseTable string) (int64, error) {
 	var gotVersion int64
 	if err := db.QueryRow(
 		fmt.Sprintf("select max(version_id) from %s", gooseTable),
@@ -223,7 +222,7 @@ func getCurrentGooseVersion(db *sql.DB, gooseTable string) (int64, error) {
 	return gotVersion, nil
 }
 
-func getGooseVersionCount(db *sql.DB, gooseTable string) (int64, error) {
+func getGooseVersionCount(db *pgxpool.Pool, gooseTable string) (int64, error) {
 	var gotVersion int64
 	if err := db.QueryRow(
 		fmt.Sprintf("SELECT count(*) FROM %s WHERE version_id > 0", gooseTable),
@@ -233,7 +232,7 @@ func getGooseVersionCount(db *sql.DB, gooseTable string) (int64, error) {
 	return gotVersion, nil
 }
 
-func getTableNames(db *sql.DB) ([]string, error) {
+func getTableNames(db *pgxpool.Pool) ([]string, error) {
 	var query string
 	switch *dialect {
 	case dialectPostgres:
