@@ -2,7 +2,6 @@ package goose
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -11,6 +10,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
@@ -126,13 +126,13 @@ func (ms Migrations) String() string {
 }
 
 // AddMigration adds a migration.
-func AddMigration(up func(*sql.Tx) error, down func(*sql.Tx) error) {
+func AddMigration(up func(pgx.Tx) error, down func(pgx.Tx) error) {
 	_, filename, _, _ := runtime.Caller(1)
 	AddNamedMigration(filename, up, down)
 }
 
 // AddNamedMigration : Add a named migration.
-func AddNamedMigration(filename string, up func(*sql.Tx) error, down func(*sql.Tx) error) {
+func AddNamedMigration(filename string, up func(pgx.Tx) error, down func(pgx.Tx) error) {
 	v, _ := NumericComponent(filename)
 	migration := &Migration{Version: v, Next: -1, Previous: -1, Registered: true, UpFn: up, DownFn: down, Source: filename}
 
@@ -301,14 +301,13 @@ func createVersionTable(db *pgxpool.Pool) error {
 	d := GetDialect()
 
 	if _, err := txn.Exec(ctx, d.createVersionTableSQL()); err != nil {
-		txn.Rollback(ctx)
+		_ = txn.Rollback(ctx)
 		return err
 	}
 
 	version := 0
-	applied := true
-	if _, err := txn.Exec(ctx, d.insertVersionSQL(), version, applied); err != nil {
-		txn.Rollback(ctx)
+	if _, err = txn.Exec(ctx, d.insertVersionSQL(), version, true); err != nil {
+		_ = txn.Rollback(ctx)
 		return err
 	}
 

@@ -1,14 +1,16 @@
 package goose
 
 import (
-	"database/sql"
+	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
@@ -26,8 +28,8 @@ type Migration struct {
 	Previous     int64  // previous version, -1 if none
 	Source       string // path to .sql script or go file
 	Registered   bool
-	UpFn         func(*sql.Tx) error // Up go migration function
-	DownFn       func(*sql.Tx) error // Down go migration function
+	UpFn         func(pgx.Tx) error // Up go migration function
+	DownFn       func(pgx.Tx) error // Down go migration function
 	noVersioning bool
 }
 
@@ -58,7 +60,9 @@ func (m *Migration) run(db *pgxpool.Pool, direction bool) error {
 		if err != nil {
 			return fmt.Errorf("ERROR %v: failed to open SQL migration file: %w", filepath.Base(m.Source), err)
 		}
-		defer f.Close()
+		defer func(f fs.File) {
+			_ = f.Close()
+		}(f)
 
 		statements, useTx, err := parseSQLMigration(f, direction)
 		if err != nil {
@@ -78,10 +82,11 @@ func (m *Migration) run(db *pgxpool.Pool, direction bool) error {
 		}
 
 	case ".go":
+		ctx := context.Background()
 		if !m.Registered {
 			return fmt.Errorf("ERROR %v: failed to run Go migration: Go functions must be registered and built into a custom binary (see https://github.com/pressly/goose/tree/master/examples/go-migrations)", m.Source)
 		}
-		tx, err := db.Begin()
+		tx, err := db.Begin(ctx)
 		if err != nil {
 			return fmt.Errorf("ERROR failed to begin transaction: %w", err)
 		}
@@ -94,25 +99,25 @@ func (m *Migration) run(db *pgxpool.Pool, direction bool) error {
 		if fn != nil {
 			// Run Go migration function.
 			if err := fn(tx); err != nil {
-				tx.Rollback()
+				_ = tx.Rollback(ctx)
 				return fmt.Errorf("ERROR %v: failed to run Go migration function %T: %w", filepath.Base(m.Source), fn, err)
 			}
 		}
 		if !m.noVersioning {
 			if direction {
-				if _, err := tx.Exec(GetDialect().insertVersionSQL(), m.Version, direction); err != nil {
-					tx.Rollback()
+				if _, err := tx.Exec(ctx, GetDialect().insertVersionSQL(), m.Version, direction); err != nil {
+					_ = tx.Rollback(context.Background())
 					return fmt.Errorf("ERROR failed to execute transaction: %w", err)
 				}
 			} else {
-				if _, err := tx.Exec(GetDialect().deleteVersionSQL(), m.Version); err != nil {
-					tx.Rollback()
+				if _, err := tx.Exec(ctx, GetDialect().deleteVersionSQL(), m.Version); err != nil {
+					_ = tx.Rollback(context.Background())
 					return fmt.Errorf("ERROR failed to execute transaction: %w", err)
 				}
 			}
 		}
 		start := time.Now()
-		if err := tx.Commit(); err != nil {
+		if err := tx.Commit(ctx); err != nil {
 			return fmt.Errorf("ERROR failed to commit transaction: %w", err)
 		}
 		finish := truncateDuration(time.Since(start))
@@ -130,7 +135,7 @@ func (m *Migration) run(db *pgxpool.Pool, direction bool) error {
 }
 
 // NumericComponent looks for migration scripts with names in the form:
-// XXX_descriptivename.ext where XXX specifies the version number
+// XXX_descriptiveness.ext where XXX specifies the version number
 // and ext specifies the type of migration
 func NumericComponent(name string) (int64, error) {
 	base := filepath.Base(name)

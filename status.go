@@ -1,6 +1,7 @@
 package goose
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"path/filepath"
@@ -47,9 +48,10 @@ func Status(db *pgxpool.Pool, dir string, opts ...OptionsFunc) error {
 func printMigrationStatus(db *pgxpool.Pool, version int64, script string) error {
 	q := GetDialect().migrationSQL()
 
+	ctx := context.Background()
 	var row MigrationRecord
 
-	err := db.QueryRow(q, version).Scan(&row.TStamp, &row.IsApplied)
+	err := db.QueryRow(ctx, q, version).Scan(&row.TStamp, &row.IsApplied)
 	if err != nil && err != sql.ErrNoRows {
 		return fmt.Errorf("failed to query the latest migration: %w", err)
 	}

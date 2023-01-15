@@ -259,9 +259,9 @@ func findMissingMigrations(knownMigrations, newMigrations Migrations) Migrations
 		existing[known.Version] = true
 	}
 	var missing Migrations
-	for _, new := range newMigrations {
-		if !existing[new.Version] && new.Version < max {
-			missing = append(missing, new)
+	for _, m := range newMigrations {
+		if !existing[m.Version] && m.Version < max {
+			missing = append(missing, m)
 		}
 	}
 	sort.SliceStable(missing, func(i, j int) bool {

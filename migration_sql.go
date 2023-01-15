@@ -1,11 +1,12 @@
 package goose
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
 	"regexp"
 	"time"
 
+	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
@@ -19,11 +20,12 @@ import (
 // until another direction directive is found.
 func runSQLMigration(db *pgxpool.Pool, statements []string, useTx bool, v int64, direction bool, noVersioning bool) error {
 	if useTx {
+		ctx := context.Background()
 		// TRANSACTION.
 
 		verboseInfo("Begin transaction")
 
-		tx, err := db.Begin()
+		tx, err := db.Begin(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to begin transaction: %w", err)
 		}
@@ -32,29 +34,29 @@ func runSQLMigration(db *pgxpool.Pool, statements []string, useTx bool, v int64,
 			verboseInfo("Executing statement: %s\n", clearStatement(query))
 			if err = execQuery(tx.Exec, query); err != nil {
 				verboseInfo("Rollback transaction")
-				tx.Rollback()
+				_ = tx.Rollback(ctx)
 				return fmt.Errorf("failed to execute SQL query %q: %w", clearStatement(query), err)
 			}
 		}
 
 		if !noVersioning {
 			if direction {
-				if err := execQuery(tx.Exec, GetDialect().insertVersionSQL(), v, direction); err != nil {
+				if err = execQuery(tx.Exec, GetDialect().insertVersionSQL(), v, direction); err != nil {
 					verboseInfo("Rollback transaction")
-					tx.Rollback()
+					_ = tx.Rollback(ctx)
 					return fmt.Errorf("failed to insert new goose version: %w", err)
 				}
 			} else {
 				if err := execQuery(tx.Exec, GetDialect().deleteVersionSQL(), v); err != nil {
 					verboseInfo("Rollback transaction")
-					tx.Rollback()
+					_ = tx.Rollback(ctx)
 					return fmt.Errorf("failed to delete goose version: %w", err)
 				}
 			}
 		}
 
 		verboseInfo("Commit transaction")
-		if err := tx.Commit(); err != nil {
+		if err := tx.Commit(ctx); err != nil {
 			return fmt.Errorf("failed to commit transaction: %w", err)
 		}
 
@@ -83,16 +85,18 @@ func runSQLMigration(db *pgxpool.Pool, statements []string, useTx bool, v int64,
 	return nil
 }
 
-func execQuery(fn func(string, ...interface{}) (sql.Result, error), query string, args ...interface{}) error {
+func execQuery(fn func(ctx context.Context, sql string, arguments ...interface{}) (commandTag pgconn.CommandTag,
+	err error), query string, args ...interface{}) error {
+	ctx := context.Background()
 	if !verbose {
-		_, err := fn(query, args...)
+		_, err := fn(ctx, query, args...)
 		return err
 	}
 
 	ch := make(chan error)
 
 	go func() {
-		_, err := fn(query, args...)
+		_, err := fn(ctx, query, args...)
 		ch <- err
 	}()
 
