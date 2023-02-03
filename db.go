@@ -3,7 +3,7 @@ package goose
 import (
 	"context"
 
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // OpenDBWithDriver creates a connection to a database, and modifies goose
@@ -13,6 +13,6 @@ func OpenDBWithDriver(dbstring string) (*pgxpool.Pool, error) {
 	if err != nil {
 		return nil, err
 	}
-	return pgxpool.ConnectConfig(context.Background(), config)
+	return pgxpool.NewWithConfig(context.Background(), config)
 
 }

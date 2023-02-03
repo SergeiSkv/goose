@@ -1,6 +1,6 @@
 package goose
 
-import "github.com/jackc/pgx/v4/pgxpool"
+import "github.com/jackc/pgx/v5/pgxpool"
 
 // Redo rolls back the most recently applied migration, then runs it again.
 func Redo(db *pgxpool.Pool, dir string, opts ...OptionsFunc) error {

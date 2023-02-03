@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/jackc/pgconn"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // Run a migration specified in raw SQL.
@@ -85,8 +85,8 @@ func runSQLMigration(db *pgxpool.Pool, statements []string, useTx bool, v int64,
 	return nil
 }
 
-func execQuery(fn func(ctx context.Context, sql string, arguments ...interface{}) (commandTag pgconn.CommandTag,
-	err error), query string, args ...interface{}) error {
+func execQuery(fn func(ctx context.Context, sql string, arguments ...any) (commandTag pgconn.CommandTag, err error),
+	query string, args ...interface{}) error {
 	ctx := context.Background()
 	if !verbose {
 		_, err := fn(ctx, query, args...)

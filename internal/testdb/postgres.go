@@ -6,8 +6,9 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/jackc/pgx/v4/pgxpool"
-	_ "github.com/jackc/pgx/v4/stdlib"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 )
@@ -88,9 +89,9 @@ func newPostgres(opts ...OptionsFunc) (*pgxpool.Pool, func(), error) {
 			if err != nil {
 				panic(err)
 			}
-			conConfig.ConnConfig.PreferSimpleProtocol = true
+			conConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
 			conConfig.MaxConns = PgMaxOpenConns
-			db, err := pgxpool.ConnectConfig(context.Background(), conConfig)
+			db, err := pgxpool.NewWithConfig(context.Background(), conConfig)
 			if err != nil {
 				panic(err)
 			}

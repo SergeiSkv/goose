@@ -5,7 +5,7 @@ import (
 	"io/fs"
 	"strconv"
 
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // Deprecated: VERSION will no longer be supported in v4.
