@@ -8,8 +8,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/pressly/goose/v3"
-	"github.com/pressly/goose/v3/internal/check"
+	"github.com/SergeiSkv/goose/internal/check"
 )
 
 func TestMigrateUpWithReset(t *testing.T) {
