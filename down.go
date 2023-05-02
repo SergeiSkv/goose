@@ -1,12 +1,13 @@
 package goose
 
 import (
-	"database/sql"
 	"fmt"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // Down rolls back a single migration from the current version.
-func Down(db *sql.DB, dir string, opts ...OptionsFunc) error {
+func Down(db *pgx.Conn, dir string, opts ...OptionsFunc) error {
 	option := &options{}
 	for _, f := range opts {
 		f(option)
@@ -35,7 +36,7 @@ func Down(db *sql.DB, dir string, opts ...OptionsFunc) error {
 }
 
 // DownTo rolls back migrations to a specific version.
-func DownTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
+func DownTo(db *pgx.Conn, dir string, version int64, opts ...OptionsFunc) error {
 	option := &options{}
 	for _, f := range opts {
 		f(option)
@@ -77,7 +78,7 @@ func DownTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 
 // downToNoVersioning applies down migrations down to, but not including, the
 // target version.
-func downToNoVersioning(db *sql.DB, migrations Migrations, version int64) error {
+func downToNoVersioning(db *pgx.Conn, migrations Migrations, version int64) error {
 	var finalVersion int64
 	for i := len(migrations) - 1; i >= 0; i-- {
 		if version >= migrations[i].Version {

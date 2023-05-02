@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -128,8 +129,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("-dbstring=%q: %v\n", dbstring, err)
 	}
+
 	defer func() {
-		if err := db.Close(); err != nil {
+		if err = db.Close(context.Background()); err != nil {
 			log.Fatalf("goose: failed to close DB: %v\n", err)
 		}
 	}()

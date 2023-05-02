@@ -1,11 +1,11 @@
 package goose
 
 import (
-	"database/sql"
+	"github.com/jackc/pgx/v5"
 )
 
 // Redo rolls back the most recently applied migration, then runs it again.
-func Redo(db *sql.DB, dir string, opts ...OptionsFunc) error {
+func Redo(db *pgx.Conn, dir string, opts ...OptionsFunc) error {
 	option := &options{}
 	for _, f := range opts {
 		f(option)

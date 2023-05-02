@@ -2,12 +2,12 @@ package dialect
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"time"
 
 	"github.com/SergeiSkv/goose/v3/internal/dialect/dialectquery"
+	"github.com/jackc/pgx/v5"
 )
 
 // Store is the interface that wraps the basic methods for a database dialect.
@@ -22,28 +22,28 @@ import (
 type Store interface {
 	// CreateVersionTable creates the version table within a transaction.
 	// This table is used to store goose migrations.
-	CreateVersionTable(ctx context.Context, tx *sql.Tx) error
+	CreateVersionTable(ctx context.Context, tx pgx.Tx) error
 
 	// InsertVersion inserts a version id into the version table within a transaction.
-	InsertVersion(ctx context.Context, tx *sql.Tx, version int64) error
+	InsertVersion(ctx context.Context, tx pgx.Tx, version int64) error
 	// InsertVersionNoTx inserts a version id into the version table without a transaction.
-	InsertVersionNoTx(ctx context.Context, db *sql.DB, version int64) error
+	InsertVersionNoTx(ctx context.Context, db *pgx.Conn, version int64) error
 
 	// DeleteVersion deletes a version id from the version table within a transaction.
-	DeleteVersion(ctx context.Context, tx *sql.Tx, version int64) error
+	DeleteVersion(ctx context.Context, tx pgx.Tx, version int64) error
 	// DeleteVersionNoTx deletes a version id from the version table without a transaction.
-	DeleteVersionNoTx(ctx context.Context, db *sql.DB, version int64) error
+	DeleteVersionNoTx(ctx context.Context, db *pgx.Conn, version int64) error
 
 	// GetMigrationRow retrieves a single migration by version id.
 	//
 	// Returns the raw sql error if the query fails. It is the callers responsibility
 	// to assert for the correct error, such as sql.ErrNoRows.
-	GetMigration(ctx context.Context, db *sql.DB, version int64) (*GetMigrationResult, error)
+	GetMigration(ctx context.Context, db *pgx.Conn, version int64) (*GetMigrationResult, error)
 
 	// ListMigrations retrieves all migrations sorted in descending order by id.
 	//
 	// If there are no migrations, an empty slice is returned with no error.
-	ListMigrations(ctx context.Context, db *sql.DB) ([]*ListMigrationsResult, error)
+	ListMigrations(ctx context.Context, db *pgx.Conn) ([]*ListMigrationsResult, error)
 }
 
 // NewStore returns a new Store for the given dialect.
@@ -93,41 +93,41 @@ type store struct {
 
 var _ Store = (*store)(nil)
 
-func (s *store) CreateVersionTable(ctx context.Context, tx *sql.Tx) error {
+func (s *store) CreateVersionTable(ctx context.Context, tx pgx.Tx) error {
 	q := s.querier.CreateTable()
-	_, err := tx.ExecContext(ctx, q)
+	_, err := tx.Exec(ctx, q)
 	return err
 }
 
-func (s *store) InsertVersion(ctx context.Context, tx *sql.Tx, version int64) error {
+func (s *store) InsertVersion(ctx context.Context, tx pgx.Tx, version int64) error {
 	q := s.querier.InsertVersion()
-	_, err := tx.ExecContext(ctx, q, version, true)
+	_, err := tx.Exec(ctx, q, version, true)
 	return err
 }
 
-func (s *store) InsertVersionNoTx(ctx context.Context, db *sql.DB, version int64) error {
+func (s *store) InsertVersionNoTx(ctx context.Context, db *pgx.Conn, version int64) error {
 	q := s.querier.InsertVersion()
-	_, err := db.ExecContext(ctx, q, version, true)
+	_, err := db.Exec(ctx, q, version, true)
 	return err
 }
 
-func (s *store) DeleteVersion(ctx context.Context, tx *sql.Tx, version int64) error {
+func (s *store) DeleteVersion(ctx context.Context, tx pgx.Tx, version int64) error {
 	q := s.querier.DeleteVersion()
-	_, err := tx.ExecContext(ctx, q, version)
+	_, err := tx.Exec(ctx, q, version)
 	return err
 }
 
-func (s *store) DeleteVersionNoTx(ctx context.Context, db *sql.DB, version int64) error {
+func (s *store) DeleteVersionNoTx(ctx context.Context, db *pgx.Conn, version int64) error {
 	q := s.querier.DeleteVersion()
-	_, err := db.ExecContext(ctx, q, version)
+	_, err := db.Exec(ctx, q, version)
 	return err
 }
 
-func (s *store) GetMigration(ctx context.Context, db *sql.DB, version int64) (*GetMigrationResult, error) {
+func (s *store) GetMigration(ctx context.Context, db *pgx.Conn, version int64) (*GetMigrationResult, error) {
 	q := s.querier.GetMigrationByVersion()
 	var timestamp time.Time
 	var isApplied bool
-	err := db.QueryRowContext(ctx, q, version).Scan(&timestamp, &isApplied)
+	err := db.QueryRow(ctx, q, version).Scan(&timestamp, &isApplied)
 	if err != nil {
 		return nil, err
 	}
@@ -137,9 +137,9 @@ func (s *store) GetMigration(ctx context.Context, db *sql.DB, version int64) (*G
 	}, nil
 }
 
-func (s *store) ListMigrations(ctx context.Context, db *sql.DB) ([]*ListMigrationsResult, error) {
+func (s *store) ListMigrations(ctx context.Context, db *pgx.Conn) ([]*ListMigrationsResult, error) {
 	q := s.querier.ListMigrations()
-	rows, err := db.QueryContext(ctx, q)
+	rows, err := db.Query(ctx, q)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +157,7 @@ func (s *store) ListMigrations(ctx context.Context, db *sql.DB) ([]*ListMigratio
 			IsApplied: isApplied,
 		})
 	}
-	if err := rows.Err(); err != nil {
+	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 	return migrations, nil

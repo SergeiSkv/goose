@@ -21,7 +21,7 @@ Goose supports [embedding SQL migrations](#embedded-sql-migrations), which means
     - Instead, we let you
       [create your own custom goose binary](examples/go-migrations),
       register your Go migration functions explicitly and run complex
-      migrations with your own `*sql.DB` connection
+      migrations with your own `pgx.Conn` connection
     - Go migration functions let you run your code within
       an SQL transaction, if you use the `*sql.Tx` argument
 - The goose pkg is decoupled from the binary:
@@ -280,7 +280,7 @@ import (
 var embedMigrations embed.FS
 
 func main() {
-    var db *sql.DB
+    var db*pgx.Conn
     // setup database
 
     goose.SetBaseFS(embedMigrations)
@@ -304,7 +304,7 @@ Note that we pass `"migrations"` as directory argument in `Up` because embedding
 1. Create your own goose binary, see [example](./examples/go-migrations)
 2. Import `github.com/SergeiSkv/goose/v3`
 3. Register your migration functions
-4. Run goose command, ie. `goose.Up(db *sql.DB, dir string)`
+4. Run goose command, ie. `goose.Up(db*pgx.Conn, dir string)`
 
 A [sample Go migration 00002_users_add_email.go file](./examples/go-migrations/00002_rename_root.go) looks like:
 
@@ -321,7 +321,7 @@ func init() {
 	goose.AddMigration(Up, Down)
 }
 
-func Up(tx *sql.Tx) error {
+func Up(tx pgx.Tx) error {
 	_, err := tx.Exec("UPDATE users SET username='admin' WHERE username='root';")
 	if err != nil {
 		return err
@@ -329,7 +329,7 @@ func Up(tx *sql.Tx) error {
 	return nil
 }
 
-func Down(tx *sql.Tx) error {
+func Down(tx pgx.Tx) error {
 	_, err := tx.Exec("UPDATE users SET username='root' WHERE username='admin';")
 	if err != nil {
 		return err

@@ -2,9 +2,10 @@ package goose
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"regexp"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // Run a migration specified in raw SQL.
@@ -17,7 +18,7 @@ import (
 // until another direction annotation is found.
 func runSQLMigration(
 	ctx context.Context,
-	db *sql.DB,
+	db *pgx.Conn,
 	statements []string,
 	useTx bool,
 	v int64,
@@ -29,16 +30,16 @@ func runSQLMigration(
 
 		verboseInfo("Begin transaction")
 
-		tx, err := db.Begin()
+		tx, err := db.Begin(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to begin transaction: %w", err)
 		}
 
 		for _, query := range statements {
 			verboseInfo("Executing statement: %s\n", clearStatement(query))
-			if _, err := tx.ExecContext(ctx, query); err != nil {
+			if _, err = tx.Exec(ctx, query); err != nil {
 				verboseInfo("Rollback transaction")
-				_ = tx.Rollback()
+				_ = tx.Rollback(ctx)
 				return fmt.Errorf("failed to execute SQL query %q: %w", clearStatement(query), err)
 			}
 		}
@@ -47,20 +48,20 @@ func runSQLMigration(
 			if direction {
 				if err := store.InsertVersion(ctx, tx, v); err != nil {
 					verboseInfo("Rollback transaction")
-					_ = tx.Rollback()
+					_ = tx.Rollback(ctx)
 					return fmt.Errorf("failed to insert new goose version: %w", err)
 				}
 			} else {
 				if err := store.DeleteVersion(ctx, tx, v); err != nil {
 					verboseInfo("Rollback transaction")
-					_ = tx.Rollback()
+					_ = tx.Rollback(ctx)
 					return fmt.Errorf("failed to delete goose version: %w", err)
 				}
 			}
 		}
 
 		verboseInfo("Commit transaction")
-		if err := tx.Commit(); err != nil {
+		if err = tx.Commit(ctx); err != nil {
 			return fmt.Errorf("failed to commit transaction: %w", err)
 		}
 
@@ -70,7 +71,7 @@ func runSQLMigration(
 	// NO TRANSACTION.
 	for _, query := range statements {
 		verboseInfo("Executing statement: %s", clearStatement(query))
-		if _, err := db.ExecContext(ctx, query); err != nil {
+		if _, err := db.Exec(ctx, query); err != nil {
 			return fmt.Errorf("failed to execute SQL query %q: %w", clearStatement(query), err)
 		}
 	}

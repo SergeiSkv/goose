@@ -2,7 +2,6 @@ package goose
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -11,6 +10,7 @@ import (
 	"time"
 
 	"github.com/SergeiSkv/goose/v3/internal/sqlparser"
+	"github.com/jackc/pgx/v5"
 )
 
 // MigrationRecord struct.
@@ -38,7 +38,7 @@ func (m *Migration) String() string {
 }
 
 // Up runs an up migration.
-func (m *Migration) Up(db *sql.DB) error {
+func (m *Migration) Up(db *pgx.Conn) error {
 	ctx := context.Background()
 	if err := m.run(ctx, db, true); err != nil {
 		return err
@@ -47,7 +47,7 @@ func (m *Migration) Up(db *sql.DB) error {
 }
 
 // Down runs a down migration.
-func (m *Migration) Down(db *sql.DB) error {
+func (m *Migration) Down(db *pgx.Conn) error {
 	ctx := context.Background()
 	if err := m.run(ctx, db, false); err != nil {
 		return err
@@ -55,7 +55,7 @@ func (m *Migration) Down(db *sql.DB) error {
 	return nil
 }
 
-func (m *Migration) run(ctx context.Context, db *sql.DB, direction bool) error {
+func (m *Migration) run(ctx context.Context, db *pgx.Conn, direction bool) error {
 	switch filepath.Ext(m.Source) {
 	case ".sql":
 		f, err := baseFS.Open(m.Source)
@@ -134,7 +134,7 @@ func (m *Migration) run(ctx context.Context, db *sql.DB, direction bool) error {
 
 func runGoMigrationNoTx(
 	ctx context.Context,
-	db *sql.DB,
+	db *pgx.Conn,
 	fn GoMigrationNoTx,
 	version int64,
 	direction bool,
@@ -154,7 +154,7 @@ func runGoMigrationNoTx(
 
 func runGoMigration(
 	ctx context.Context,
-	db *sql.DB,
+	db *pgx.Conn,
 	fn GoMigration,
 	version int64,
 	direction bool,
@@ -163,37 +163,37 @@ func runGoMigration(
 	if fn == nil && !recordVersion {
 		return nil
 	}
-	tx, err := db.Begin()
+	tx, err := db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	if fn != nil {
 		// Run go migration function.
 		if err := fn(tx); err != nil {
-			_ = tx.Rollback()
+			_ = tx.Rollback(ctx)
 			return fmt.Errorf("failed to run go migration: %w", err)
 		}
 	}
 	if recordVersion {
 		if err := insertOrDeleteVersion(ctx, tx, version, direction); err != nil {
-			_ = tx.Rollback()
+			_ = tx.Rollback(ctx)
 			return fmt.Errorf("failed to update version: %w", err)
 		}
 	}
-	if err := tx.Commit(); err != nil {
+	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 	return nil
 }
 
-func insertOrDeleteVersion(ctx context.Context, tx *sql.Tx, version int64, direction bool) error {
+func insertOrDeleteVersion(ctx context.Context, tx pgx.Tx, version int64, direction bool) error {
 	if direction {
 		return store.InsertVersion(ctx, tx, version)
 	}
 	return store.DeleteVersion(ctx, tx, version)
 }
 
-func insertOrDeleteVersionNoTx(ctx context.Context, db *sql.DB, version int64, direction bool) error {
+func insertOrDeleteVersionNoTx(ctx context.Context, db *pgx.Conn, version int64, direction bool) error {
 	if direction {
 		return store.InsertVersionNoTx(ctx, db, version)
 	}

@@ -60,9 +60,9 @@ func init() {
 	goose.AddMigration(up001, down001)
 }
 
-func up001(tx *sql.Tx) error { return nil }
+func up001(tx pgx.Tx) error { return nil }
 
-func down001(tx *sql.Tx) error { return nil }`
+func down001(tx pgx.Tx) error { return nil }`
 
 	downOnly = `package testgo
 
@@ -76,7 +76,7 @@ func init() {
 	goose.AddMigration(nil, down002)
 }
 
-func down002(tx *sql.Tx) error { return nil }`
+func down002(tx pgx.Tx) error { return nil }`
 
 	upOnly = `package testgo
 
@@ -90,7 +90,7 @@ func init() {
 	goose.AddMigration(up003, nil)
 }
 
-func up003(tx *sql.Tx) error { return nil }`
+func up003(tx pgx.Tx) error { return nil }`
 
 	upAndDownNil = `package testgo
 
@@ -117,9 +117,9 @@ func init() {
 	goose.AddMigrationNoTx(up001, down001)
 }
 
-func up001(db *sql.DB) error { return nil }
+func up001(db*pgx.Conn) error { return nil }
 
-func down001(db *sql.DB) error { return nil }`
+func down001(db*pgx.Conn) error { return nil }`
 
 	downOnlyNoTx = `package testgo
 
@@ -133,7 +133,7 @@ func init() {
 	goose.AddMigrationNoTx(nil, down002)
 }
 
-func down002(db *sql.DB) error { return nil }`
+func down002(db*pgx.Conn) error { return nil }`
 
 	upOnlyNoTx = `package testgo
 
@@ -147,7 +147,7 @@ func init() {
 	goose.AddMigrationNoTx(up003, nil)
 }
 
-func up003(db *sql.DB) error { return nil }`
+func up003(db*pgx.Conn) error { return nil }`
 
 	upAndDownNilNoTx = `package testgo
 

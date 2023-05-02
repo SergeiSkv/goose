@@ -1,6 +1,7 @@
 package gomigrations
 
 import (
+	"context"
 	"testing"
 
 	"github.com/SergeiSkv/goose/v3"
@@ -31,7 +32,7 @@ func TestGoMigrationByOne(t *testing.T) {
 	check.NoError(t, err)
 	check.Number(t, version, 1)
 
-	// Registered Go migration run outside a goose tx using *sql.DB.
+	// Registered Go migration run outside a goose tx using*pgx.Conn.
 	err = migrations[1].Up(db)
 	check.HasError(t, err)
 	check.Contains(t, err.Error(), "failed to run go migration")
@@ -42,7 +43,7 @@ func TestGoMigrationByOne(t *testing.T) {
 	// This migration was inserting 100 rows, but fails at 50, and
 	// because it's run outside a goose tx then we expect 50 rows.
 	var count int
-	err = db.QueryRow("SELECT COUNT(*) FROM foo").Scan(&count)
+	err = db.QueryRow(context.Background(), "SELECT COUNT(*) FROM foo").Scan(&count)
 	check.NoError(t, err)
 	check.Number(t, count, 50)
 
@@ -63,7 +64,7 @@ func TestGoMigrationByOne(t *testing.T) {
 	check.Number(t, version, 3) // This migration failed, so we're still at 3.
 	// This migration was inserting 100 rows, but fails at 50. However, since it's
 	// running within a tx we expect none of the inserts to persist.
-	err = db.QueryRow("SELECT COUNT(*) FROM foo").Scan(&count)
+	err = db.QueryRow(context.Background(), "SELECT COUNT(*) FROM foo").Scan(&count)
 	check.NoError(t, err)
 	check.Number(t, count, 0)
 

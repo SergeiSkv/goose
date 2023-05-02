@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"path/filepath"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // Status prints the status of all migrations.
-func Status(db *sql.DB, dir string, opts ...OptionsFunc) error {
+func Status(db *pgx.Conn, dir string, opts ...OptionsFunc) error {
 	ctx := context.Background()
 	option := &options{}
 	for _, f := range opts {
@@ -45,7 +47,7 @@ func Status(db *sql.DB, dir string, opts ...OptionsFunc) error {
 	return nil
 }
 
-func printMigrationStatus(ctx context.Context, db *sql.DB, version int64, script string) error {
+func printMigrationStatus(ctx context.Context, db *pgx.Conn, version int64, script string) error {
 	m, err := store.GetMigration(ctx, db, version)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("failed to query the latest migration: %w", err)

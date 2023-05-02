@@ -2,7 +2,6 @@ package goose
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -12,6 +11,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 var (
@@ -126,10 +127,10 @@ func (ms Migrations) String() string {
 }
 
 // GoMigration is a Go migration func that is run within a transaction.
-type GoMigration func(tx *sql.Tx) error
+type GoMigration func(tx pgx.Tx) error
 
 // GoMigrationNoTx is a Go migration func that is run outside a transaction.
-type GoMigrationNoTx func(db *sql.DB) error
+type GoMigrationNoTx func(db *pgx.Conn) error
 
 // AddMigration adds Go migrations.
 func AddMigration(up, down GoMigration) {
@@ -294,7 +295,7 @@ func versionFilter(v, current, target int64) bool {
 
 // EnsureDBVersion retrieves the current version for this DB.
 // Create and initialize the DB version table if it doesn't exist.
-func EnsureDBVersion(db *sql.DB) (int64, error) {
+func EnsureDBVersion(db *pgx.Conn) (int64, error) {
 	ctx := context.Background()
 	dbMigrations, err := store.ListMigrations(ctx, db)
 	if err != nil {
@@ -331,24 +332,24 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 
 // createVersionTable creates the db version table and inserts the
 // initial 0 value into it.
-func createVersionTable(ctx context.Context, db *sql.DB) error {
-	txn, err := db.Begin()
+func createVersionTable(ctx context.Context, db *pgx.Conn) error {
+	txn, err := db.Begin(ctx)
 	if err != nil {
 		return err
 	}
-	if err := store.CreateVersionTable(ctx, txn); err != nil {
-		_ = txn.Rollback()
+	if err = store.CreateVersionTable(ctx, txn); err != nil {
+		_ = txn.Rollback(ctx)
 		return err
 	}
-	if err := store.InsertVersion(ctx, txn, 0); err != nil {
-		_ = txn.Rollback()
+	if err = store.InsertVersion(ctx, txn, 0); err != nil {
+		_ = txn.Rollback(ctx)
 		return err
 	}
-	return txn.Commit()
+	return txn.Commit(ctx)
 }
 
 // GetDBVersion is an alias for EnsureDBVersion, but returns -1 in error.
-func GetDBVersion(db *sql.DB) (int64, error) {
+func GetDBVersion(db *pgx.Conn) (int64, error) {
 	version, err := EnsureDBVersion(db)
 	if err != nil {
 		return -1, err

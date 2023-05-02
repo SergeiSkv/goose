@@ -1,12 +1,13 @@
 package goose
 
 import (
-	"database/sql"
 	"fmt"
 	"os"
 	"path/filepath"
 	"text/template"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type tmplVars struct {
@@ -24,7 +25,7 @@ func SetSequential(s bool) {
 }
 
 // Create writes a new blank migration file.
-func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, migrationType string) error {
+func CreateWithTemplate(_ *pgx.Conn, dir string, tmpl *template.Template, name, migrationType string) error {
 	var version string
 	if sequential {
 		// always use DirFS here because it's modifying operation
@@ -81,7 +82,7 @@ func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, m
 }
 
 // Create writes a new blank migration file.
-func Create(db *sql.DB, dir, name, migrationType string) error {
+func Create(db *pgx.Conn, dir, name, migrationType string) error {
 	return CreateWithTemplate(db, dir, nil, name, migrationType)
 }
 
@@ -107,12 +108,12 @@ func init() {
 	goose.AddMigration(up{{.CamelName}}, down{{.CamelName}})
 }
 
-func up{{.CamelName}}(tx *sql.Tx) error {
+func up{{.CamelName}}(tx pgx.Tx) error {
 	// This code is executed when the migration is applied.
 	return nil
 }
 
-func down{{.CamelName}}(tx *sql.Tx) error {
+func down{{.CamelName}}(tx pgx.Tx) error {
 	// This code is executed when the migration is rolled back.
 	return nil
 }

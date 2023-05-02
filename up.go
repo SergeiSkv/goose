@@ -2,11 +2,12 @@ package goose
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type options struct {
@@ -34,7 +35,7 @@ func withApplyUpByOne() OptionsFunc {
 }
 
 // UpTo migrates up to a specific version.
-func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
+func UpTo(db *pgx.Conn, dir string, version int64, opts ...OptionsFunc) error {
 	ctx := context.Background()
 	option := &options{}
 	for _, f := range opts {
@@ -124,7 +125,7 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 
 // upToNoVersioning applies up migrations up to, and including, the
 // target version.
-func upToNoVersioning(db *sql.DB, migrations Migrations, version int64) error {
+func upToNoVersioning(db *pgx.Conn, migrations Migrations, version int64) error {
 	var finalVersion int64
 	for _, current := range migrations {
 		if current.Version > version {
@@ -141,7 +142,7 @@ func upToNoVersioning(db *sql.DB, migrations Migrations, version int64) error {
 }
 
 func upWithMissing(
-	db *sql.DB,
+	db *pgx.Conn,
 	missingMigrations Migrations,
 	foundMigrations Migrations,
 	dbMigrations Migrations,
@@ -212,19 +213,19 @@ func upWithMissing(
 }
 
 // Up applies all available migrations.
-func Up(db *sql.DB, dir string, opts ...OptionsFunc) error {
+func Up(db *pgx.Conn, dir string, opts ...OptionsFunc) error {
 	return UpTo(db, dir, maxVersion, opts...)
 }
 
 // UpByOne migrates up by a single version.
-func UpByOne(db *sql.DB, dir string, opts ...OptionsFunc) error {
+func UpByOne(db *pgx.Conn, dir string, opts ...OptionsFunc) error {
 	opts = append(opts, withApplyUpByOne())
 	return UpTo(db, dir, maxVersion, opts...)
 }
 
 // listAllDBVersions returns a list of all migrations, ordered ascending.
 // TODO(mf): fairly cheap, but a nice-to-have is pagination support.
-func listAllDBVersions(ctx context.Context, db *sql.DB) (Migrations, error) {
+func listAllDBVersions(ctx context.Context, db *pgx.Conn) (Migrations, error) {
 	dbMigrations, err := store.ListMigrations(ctx, db)
 	if err != nil {
 		return nil, err
@@ -253,9 +254,9 @@ func findMissingMigrations(knownMigrations, newMigrations Migrations) Migrations
 		existing[known.Version] = true
 	}
 	var missing Migrations
-	for _, new := range newMigrations {
-		if !existing[new.Version] && new.Version < max {
-			missing = append(missing, new)
+	for _, newMigration := range newMigrations {
+		if !existing[newMigration.Version] && newMigration.Version < max {
+			missing = append(missing, newMigration)
 		}
 	}
 	sort.SliceStable(missing, func(i, j int) bool {

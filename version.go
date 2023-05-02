@@ -1,12 +1,13 @@
 package goose
 
 import (
-	"database/sql"
 	"fmt"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // Version prints the current version of the database.
-func Version(db *sql.DB, dir string, opts ...OptionsFunc) error {
+func Version(db *pgx.Conn, dir string, opts ...OptionsFunc) error {
 	option := &options{}
 	for _, f := range opts {
 		f(option)

@@ -1,11 +1,12 @@
 package e2e
 
 import (
-	"database/sql"
+	"context"
 	"testing"
 
 	"github.com/SergeiSkv/goose/v3"
 	"github.com/SergeiSkv/goose/v3/internal/check"
+	"github.com/jackc/pgx/v5"
 )
 
 func TestNoVersioning(t *testing.T) {
@@ -130,19 +131,19 @@ func TestNoVersioning(t *testing.T) {
 	})
 }
 
-func countSeedOwners(db *sql.DB) (int, error) {
+func countSeedOwners(db *pgx.Conn) (int, error) {
 	q := `SELECT COUNT(*)FROM owners WHERE owner_name LIKE'seed-user-%'`
 	var count int
-	if err := db.QueryRow(q).Scan(&count); err != nil {
+	if err := db.QueryRow(context.Background(), q).Scan(&count); err != nil {
 		return 0, err
 	}
 	return count, nil
 }
 
-func countOwners(db *sql.DB) (int, error) {
+func countOwners(db *pgx.Conn) (int, error) {
 	q := `SELECT COUNT(*)FROM owners`
 	var count int
-	if err := db.QueryRow(q).Scan(&count); err != nil {
+	if err := db.QueryRow(context.Background(), q).Scan(&count); err != nil {
 		return 0, err
 	}
 	return count, nil

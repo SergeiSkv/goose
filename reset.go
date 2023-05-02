@@ -2,13 +2,14 @@ package goose
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"sort"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // Reset rolls back all migrations
-func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
+func Reset(db *pgx.Conn, dir string, opts ...OptionsFunc) error {
 	ctx := context.Background()
 	option := &options{}
 	for _, f := range opts {
@@ -40,7 +41,7 @@ func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
 	return nil
 }
 
-func dbMigrationsStatus(ctx context.Context, db *sql.DB) (map[int64]bool, error) {
+func dbMigrationsStatus(ctx context.Context, db *pgx.Conn) (map[int64]bool, error) {
 	dbMigrations, err := store.ListMigrations(ctx, db)
 	if err != nil {
 		return nil, err

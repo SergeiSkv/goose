@@ -1,7 +1,7 @@
 package e2e
 
 import (
-	"database/sql"
+	"context"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -10,6 +10,7 @@ import (
 
 	"github.com/SergeiSkv/goose/v3"
 	"github.com/SergeiSkv/goose/v3/internal/check"
+	"github.com/jackc/pgx/v5"
 )
 
 func TestMigrateUpWithReset(t *testing.T) {
@@ -208,9 +209,9 @@ func TestMigrateFull(t *testing.T) {
 	}
 }
 
-func getCurrentGooseVersion(db *sql.DB, gooseTable string) (int64, error) {
+func getCurrentGooseVersion(db *pgx.Conn, gooseTable string) (int64, error) {
 	var gotVersion int64
-	if err := db.QueryRow(
+	if err := db.QueryRow(context.Background(),
 		fmt.Sprintf("select max(version_id) from %s", gooseTable),
 	).Scan(&gotVersion); err != nil {
 		return 0, err
@@ -218,9 +219,9 @@ func getCurrentGooseVersion(db *sql.DB, gooseTable string) (int64, error) {
 	return gotVersion, nil
 }
 
-func getGooseVersionCount(db *sql.DB, gooseTable string) (int64, error) {
+func getGooseVersionCount(db *pgx.Conn, gooseTable string) (int64, error) {
 	var gotVersion int64
-	if err := db.QueryRow(
+	if err := db.QueryRow(context.Background(),
 		fmt.Sprintf("SELECT count(*) FROM %s WHERE version_id > 0", gooseTable),
 	).Scan(&gotVersion); err != nil {
 		return 0, err
@@ -228,7 +229,7 @@ func getGooseVersionCount(db *sql.DB, gooseTable string) (int64, error) {
 	return gotVersion, nil
 }
 
-func getTableNames(db *sql.DB) ([]string, error) {
+func getTableNames(db *pgx.Conn) ([]string, error) {
 	var query string
 	switch *dialect {
 	case dialectPostgres:
@@ -236,7 +237,7 @@ func getTableNames(db *sql.DB) ([]string, error) {
 	case dialectMySQL:
 		query = `SELECT table_name FROM INFORMATION_SCHEMA.tables WHERE TABLE_TYPE='BASE TABLE' ORDER BY table_name`
 	}
-	rows, err := db.Query(query)
+	rows, err := db.Query(context.Background(), query)
 	if err != nil {
 		return nil, err
 	}

@@ -1,11 +1,11 @@
 package e2e
 
 import (
-	"database/sql"
 	"testing"
 
 	"github.com/SergeiSkv/goose/v3"
 	"github.com/SergeiSkv/goose/v3/internal/check"
+	"github.com/jackc/pgx/v5"
 )
 
 func TestNotAllowMissing(t *testing.T) {
@@ -317,7 +317,7 @@ func TestMigrateAllowMissingDown(t *testing.T) {
 
 // setupTestDB is helper to setup a DB and apply migrations
 // up to the specified version.
-func setupTestDB(t *testing.T, version int64) *sql.DB {
+func setupTestDB(t *testing.T, version int64) *pgx.Conn {
 	db, err := newDockerDB(t)
 	check.NoError(t, err)
 
