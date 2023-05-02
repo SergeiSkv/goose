@@ -9,7 +9,7 @@ type Postgres struct {
 var _ Querier = (*Postgres)(nil)
 
 func (p *Postgres) CreateTable() string {
-	q := `CREATE TABLE %s (
+	q := `CREATE TABLE IF NOT EXISTS %s (
 		id serial NOT NULL,
 		version_id bigint NOT NULL,
 		is_applied boolean NOT NULL,
