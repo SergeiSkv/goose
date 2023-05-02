@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+
+	"github.com/SergeiSkv/goose/v3"
 )
 
 // FileWalker walks all files for GatherStats.
