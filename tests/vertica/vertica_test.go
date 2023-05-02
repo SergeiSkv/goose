@@ -5,8 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SergeiSkv/goose/internal/check"
-	"github.com/SergeiSkv/goose/internal/testdb"
+	"github.com/SergeiSkv/goose/v3"
+	"github.com/SergeiSkv/goose/v3/internal/check"
+	"github.com/SergeiSkv/goose/v3/internal/testdb"
 )
 
 /*

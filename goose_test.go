@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/SergeiSkv/goose/internal/check"
+	"github.com/SergeiSkv/goose/v3/internal/check"
 	_ "modernc.org/sqlite"
 )
 
@@ -54,7 +54,7 @@ func TestDefaultBinary(t *testing.T) {
 
 func TestIssue293(t *testing.T) {
 	t.Parallel()
-	// https://github.com/SergeiSkv/goose/issues/293
+	// https://github.com/SergeiSkv/goose/v3/issues/293
 	commands := []string{
 		"go build -o ./bin/goose293 ./cmd/goose",
 		"./bin/goose293 -dir=examples/sql-migrations sqlite3 issue_293.db up",

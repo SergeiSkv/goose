@@ -15,9 +15,10 @@ import (
 	"text/tabwriter"
 	"text/template"
 
-	"github.com/SergeiSkv/goose/internal/cfg"
-	"github.com/SergeiSkv/goose/internal/migrationstats"
-	"github.com/SergeiSkv/goose/internal/migrationstats/migrationstatsos"
+	"github.com/SergeiSkv/goose/v3"
+	"github.com/SergeiSkv/goose/v3/internal/cfg"
+	"github.com/SergeiSkv/goose/v3/internal/migrationstats"
+	"github.com/SergeiSkv/goose/v3/internal/migrationstats/migrationstatsos"
 )
 
 var (

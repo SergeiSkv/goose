@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/SergeiSkv/goose/internal/migrationstats"
+	"github.com/SergeiSkv/goose/v3/internal/migrationstats"
 )
 
 // NewFileWalker returns a new FileWalker for the given filenames.

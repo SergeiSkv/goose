@@ -1,4 +1,4 @@
-module github.com/SergeiSkv/goose
+module github.com/SergeiSkv/goose/v3
 
 go 1.19
 

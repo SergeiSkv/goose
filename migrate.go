@@ -309,7 +309,7 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 	// this column.
 	//
 	// For context, see:
-	// https://github.com/SergeiSkv/goose/pull/131#pullrequestreview-178409168
+	// https://github.com/SergeiSkv/goose/v3/pull/131#pullrequestreview-178409168
 	//
 	// The dbMigrations list is expected to be ordered by descending ID. But
 	// in the future we should be able to query the last record only.

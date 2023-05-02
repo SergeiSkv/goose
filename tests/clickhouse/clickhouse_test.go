@@ -7,8 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SergeiSkv/goose/internal/check"
-	"github.com/SergeiSkv/goose/internal/testdb"
+	"github.com/SergeiSkv/goose/v3"
+	"github.com/SergeiSkv/goose/v3/internal/check"
+	"github.com/SergeiSkv/goose/v3/internal/testdb"
 )
 
 func TestMain(m *testing.M) {
@@ -150,7 +151,7 @@ func TestRemoteImportMigration(t *testing.T) {
 	check.NoError(t, err)
 
 	var count int
-	err = db.QueryRow(`SELECT count(*) FROM taxi_zone_dictionary`).Scan(&count)
+	err = db.QueryRow(`SELECT COUNT(*) FROM taxi_zone_dictionary`).Scan(&count)
 	check.NoError(t, err)
 	check.Number(t, count, 265)
 }

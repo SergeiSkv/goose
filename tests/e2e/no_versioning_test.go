@@ -4,7 +4,8 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/SergeiSkv/goose/internal/check"
+	"github.com/SergeiSkv/goose/v3"
+	"github.com/SergeiSkv/goose/v3/internal/check"
 )
 
 func TestNoVersioning(t *testing.T) {
@@ -130,7 +131,7 @@ func TestNoVersioning(t *testing.T) {
 }
 
 func countSeedOwners(db *sql.DB) (int, error) {
-	q := `SELECT count(*)FROM owners WHERE owner_name LIKE'seed-user-%'`
+	q := `SELECT COUNT(*)FROM owners WHERE owner_name LIKE'seed-user-%'`
 	var count int
 	if err := db.QueryRow(q).Scan(&count); err != nil {
 		return 0, err
@@ -139,7 +140,7 @@ func countSeedOwners(db *sql.DB) (int, error) {
 }
 
 func countOwners(db *sql.DB) (int, error) {
-	q := `SELECT count(*)FROM owners`
+	q := `SELECT COUNT(*)FROM owners`
 	var count int
 	if err := db.QueryRow(q).Scan(&count); err != nil {
 		return 0, err
